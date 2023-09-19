@@ -3,24 +3,40 @@ import React, { useState } from "react";
 import { useLogin } from "../store/login";
 import { Button, Checkbox, Form, Input } from "antd";
 import { LockOutlined, UserOutlined } from "@ant-design/icons";
-import useSWR from "swr";
 import { CountdownButton } from "../components/countDownButton";
-import { loginIn } from "./api/api";
-import { registerReponseType } from "../register/page";
-
+import { register } from "./api/api";
+export type registerReponseType = {
+  code: number;
+  data: {
+    token: {
+      token: string;
+      expires: string;
+    };
+  };
+};
+const onFinish = async (values: any) => {
+  const data: registerReponseType = await register(values);
+  if (data.code === 1) {
+    localStorage.setItem("token", data.data.token.token);
+  }
+  console.log(data);
+};
 type FieldType = {
   username?: string;
   password?: string;
   remember?: string;
 };
-function Login() {
-  const isLogin = useLogin((state) => state.isLogin);
+function Register() {
+  const login = useLogin((state) => state.login);
   const [form] = Form.useForm<{ phoneNumber: string; password: string }>();
+  const phoneNumberValue = Form.useWatch("phone", form);
   const onFinish = async (values: any) => {
-    const data: registerReponseType = await loginIn(values);
+    const data: registerReponseType = await register(values);
     if (data.code === 1) {
       localStorage.setItem("token", data.data.token.token);
+      login(true);
     }
+    console.log(data);
   };
   return (
     <>
@@ -52,26 +68,26 @@ function Login() {
           />
         </Form.Item>
 
+        <Form.Item
+          name="verify"
+          rules={[{ required: true, message: "请输入电话号码!" }]}
+        >
+          <div className="flex justify-center items-center ">
+            <Input
+              prefix={<LockOutlined className="site-form-item-icon" />}
+              placeholder="验证码"
+            />
+
+            <CountdownButton phone={phoneNumberValue} />
+          </div>
+        </Form.Item>
+
         <Form.Item>
-          <>
-            <Button
-              type="primary"
-              htmlType="submit"
-              className="login-form-button"
-            >
-              登录
-            </Button>
-            <a
-              className="text-white hover:text-blue-400 mt-3 ml-1"
-              href="/register"
-            >
-              去注册
-            </a>
-          </>
+          <Button htmlType="submit">注册</Button>
         </Form.Item>
       </Form>
     </>
   );
 }
 
-export default Login;
+export default Register;

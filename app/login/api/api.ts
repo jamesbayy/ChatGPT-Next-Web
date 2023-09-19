@@ -1,11 +1,16 @@
-import { Post } from "@/app/api/config/baseFetch";
 import { baseUrl } from "@/app/api/config/baseUrl";
 
-export const getVerifyCode = async (phoneNumber: string) => {
-  const url = baseUrl + "login/sendsms";
-  //   const formData = new FormData();
-  //   formData.append("phone", phoneNumber);
+export const loginIn = async (params: any) => {
+  const url = baseUrl + "login/in";
 
-  const verifyCode = await Post(url, { phone: phoneNumber });
-  return verifyCode;
+  const response = await fetch(url, {
+    method: "POST",
+    body: JSON.stringify(params),
+    headers: {
+      "content-type": "application/json",
+    },
+  });
+
+  const data = await response.json();
+  return data;
 };
