@@ -1,31 +1,14 @@
 import qs from "qs";
-export type IAuthType = "noToken" | "default" | "ai";
 import cloneDeep from "lodash/cloneDeep";
 import jwtDecode from "jwt-decode";
 import { getSession } from "@/app/utils/api";
-export interface IOptions {
-  headers?: { [key: string]: string };
-  body?: any;
-  authType?: IAuthType;
-  requestUrl: string;
-}
+import { IResponse, IAuthType, IQueryParams } from "@/app/types/api";
+const defaultHost = process.env.NEXT_PUBLIC_BASE_URL;
+console.log("🚀 ~ file: utils.ts:7 ~ defaultHost:", defaultHost);
 
-export interface IResponse<T> {
-  code: number;
-  data: T;
-  message: string;
-}
-
-export type IQueryParams = {
-  [key: string]: any;
-};
-
-const defaultHost = process.env.NEXT_PUBLIC_HOST;
-const aiHost = process.env.NEXT_PUBLIC_AI_HOST;
 export const hostMap = {
   noToken: defaultHost,
   default: defaultHost,
-  ai: aiHost,
 };
 
 export const isExpToken = (expTime: number) => {
@@ -91,9 +74,12 @@ export const getAuthorization = async (authType: IAuthType) => {
   // 封装的获取localstorage等数据的方法
   const accessToken = getSession("local", tokenKey);
   const tokenInfo = parseJWT(accessToken);
-  let authorization = "";
+  let authorization = accessToken.token;
+
+  //TODO:检查token过期时间
+
   if (accessToken && !isExpToken(tokenInfo.exp)) {
-    authorization = `Bearer ${accessToken}`;
+    // authorization = accessToken;
   } else {
     // token 过期了，重新登录请求然后给请求头设置好token
     // 获取token的方法等也可以根据authType的不同进行自定义设置
@@ -101,5 +87,9 @@ export const getAuthorization = async (authType: IAuthType) => {
     // setSession("local", tokenKey, res?.data);
     // authorization = `Bearer ${res?.data}`;
   }
+  console.log(
+    "🚀 ~ file: utils.ts:78 ~ getAuthorization ~ authorization:",
+    authorization,
+  );
   return authorization;
 };

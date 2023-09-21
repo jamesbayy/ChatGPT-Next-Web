@@ -5,22 +5,8 @@ import { Button, Checkbox, Form, Input } from "antd";
 import { LockOutlined, UserOutlined } from "@ant-design/icons";
 import { CountdownButton } from "../components/countDownButton";
 import { register } from "./api/api";
-export type registerReponseType = {
-  code: number;
-  data: {
-    token: {
-      token: string;
-      expires: string;
-    };
-  };
-};
-const onFinish = async (values: any) => {
-  const data: registerReponseType = await register(values);
-  if (data.code === 1) {
-    localStorage.setItem("token", data.data.token.token);
-  }
-  console.log(data);
-};
+import { useRouter } from "next/navigation";
+
 type FieldType = {
   username?: string;
   password?: string;
@@ -28,15 +14,15 @@ type FieldType = {
 };
 function Register() {
   const login = useLogin((state) => state.login);
+  const router = useRouter();
   const [form] = Form.useForm<{ phoneNumber: string; password: string }>();
   const phoneNumberValue = Form.useWatch("phone", form);
   const onFinish = async (values: any) => {
-    const data: registerReponseType = await register(values);
+    const data = await register(values);
     if (data.code === 1) {
-      localStorage.setItem("token", data.data.token.token);
-      login(true);
+      localStorage.setItem("defaultToken", data.data.token);
+      router.push("/");
     }
-    console.log(data);
   };
   return (
     <>

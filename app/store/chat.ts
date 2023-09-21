@@ -19,7 +19,12 @@ import { prettyObject } from "../utils/format";
 import { estimateTokenLength } from "../utils/token";
 import { nanoid } from "nanoid";
 import { createPersistStore } from "../utils/store";
-
+import {
+  CustomChatGptApi,
+  createNewDialogId,
+} from "../client/platforms/customProxy";
+import { ChatGPTApi } from "../client/platforms/openai";
+//BUG: modify  ChatSession.topic -->title
 export type ChatMessage = RequestMessage & {
   date: string;
   streaming?: boolean;
@@ -46,7 +51,7 @@ export interface ChatStat {
 
 export interface ChatSession {
   id: string;
-  topic: string;
+  title: string;
 
   memoryPrompt: string;
   messages: ChatMessage[];
@@ -64,10 +69,30 @@ export const BOT_HELLO: ChatMessage = createMessage({
   content: Locale.Store.BotHello,
 });
 
+async function createEmptySessionByCustomId(): Promise<ChatSession> {
+  const data = await createNewDialogId(DEFAULT_TOPIC);
+  const id: string = data.data.current_id;
+  return {
+    id: id,
+    title: DEFAULT_TOPIC,
+    memoryPrompt: "",
+    messages: [],
+    stat: {
+      tokenCount: 0,
+      wordCount: 0,
+      charCount: 0,
+    },
+    lastUpdate: Date.now(),
+    lastSummarizeIndex: 0,
+
+    mask: createEmptyMask(),
+  };
+}
+
 function createEmptySession(): ChatSession {
   return {
     id: nanoid(),
-    topic: DEFAULT_TOPIC,
+    title: DEFAULT_TOPIC,
     memoryPrompt: "",
     messages: [],
     stat: {
@@ -194,7 +219,32 @@ export const useChatStore = createPersistStore(
           };
         });
       },
+      async newCustomSession(mask?: Mask) {
+        const session = createEmptySessionByCustomId();
+        console.log(
+          "🚀 ~ file: chat.ts:224 ~ newCustomSession ~ session:",
+          session,
+        );
+        session.then((res) => {
+          if (mask) {
+            const config = useAppConfig.getState();
+            const globalModelConfig = config.modelConfig;
 
+            res.mask = {
+              ...mask,
+              modelConfig: {
+                ...globalModelConfig,
+                ...mask.modelConfig,
+              },
+            };
+            res.title = mask.name;
+          }
+          set((state) => ({
+            currentSessionIndex: 0,
+            sessions: [res].concat(state.sessions),
+          }));
+        });
+      },
       newSession(mask?: Mask) {
         const session = createEmptySession();
 
@@ -209,7 +259,7 @@ export const useChatStore = createPersistStore(
               ...mask.modelConfig,
             },
           };
-          session.topic = mask.name;
+          session.title = mask.name;
         }
 
         set((state) => ({
@@ -290,7 +340,89 @@ export const useChatStore = createPersistStore(
         get().updateStat(message);
         get().summarizeSession();
       },
+      //TODO:自定义chat方法  chat
+      async CustomUserInput(content: string) {
+        const session = get().currentSession();
+        console.log(
+          "🚀 ~ file: chat.ts:346 ~ CustomUserInput ~ session:",
+          session,
+        );
+        const modelConfig = session.mask.modelConfig;
+        const userContent = fillTemplateWith(content, modelConfig);
+        const userMessage: ChatMessage = createMessage({
+          role: "user",
+          content: userContent,
+        });
+        const botMessage: ChatMessage = createMessage({
+          role: "assistant",
+          streaming: true,
+          model: modelConfig.model,
+        });
+        const recentMessages = get().getMessagesWithMemory();
 
+        const sendMessages = recentMessages.concat(userMessage);
+        const messageIndex = get().currentSession().messages.length + 1;
+        get().updateCurrentSession((session) => {
+          const savedUserMessage = {
+            ...userMessage,
+            content,
+          };
+          session.messages = session.messages.concat([
+            savedUserMessage,
+            botMessage,
+          ]);
+        });
+        api.llm.chat({
+          messages: sendMessages,
+          config: { ...modelConfig, stream: true },
+          onUpdate(message) {
+            botMessage.streaming = true;
+            if (message) {
+              botMessage.content = message;
+            }
+            get().updateCurrentSession((session) => {
+              session.messages = session.messages.concat();
+            });
+          },
+          onFinish(message) {
+            botMessage.streaming = false;
+            if (message) {
+              botMessage.content = message;
+              get().onNewMessage(botMessage);
+            }
+            ChatControllerPool.remove(session.id, botMessage.id);
+          },
+          onError(error) {
+            const isAborted = error.message.includes("aborted");
+            botMessage.content +=
+              "\n\n" +
+              prettyObject({
+                error: true,
+                message: error.message,
+              });
+            botMessage.streaming = false;
+            userMessage.isError = !isAborted;
+            botMessage.isError = !isAborted;
+            get().updateCurrentSession((session) => {
+              session.messages = session.messages.concat();
+            });
+            ChatControllerPool.remove(
+              session.id,
+              botMessage.id ?? messageIndex,
+            );
+
+            console.error("[Chat] failed ", error);
+          },
+          onController(controller) {
+            // collect controller for stop/retry
+            ChatControllerPool.addController(
+              session.id,
+              botMessage.id ?? messageIndex,
+              controller,
+            );
+          },
+        });
+      },
       async onUserInput(content: string) {
         const session = get().currentSession();
         const modelConfig = session.mask.modelConfig;
@@ -506,7 +638,7 @@ export const useChatStore = createPersistStore(
         const SUMMARIZE_MIN_LEN = 50;
         if (
           config.enableAutoGenerateTitle &&
-          session.topic === DEFAULT_TOPIC &&
+          session.title === DEFAULT_TOPIC &&
           countMessages(messages) >= SUMMARIZE_MIN_LEN
         ) {
           const topicMessages = messages.concat(
@@ -523,7 +655,7 @@ export const useChatStore = createPersistStore(
             onFinish(message) {
               get().updateCurrentSession(
                 (session) =>
-                  (session.topic =
+                  (session.title =
                     message.length > 0 ? trimTopic(message) : DEFAULT_TOPIC),
               );
             },
@@ -628,7 +760,7 @@ export const useChatStore = createPersistStore(
         const oldSessions = state.sessions;
         for (const oldSession of oldSessions) {
           const newSession = createEmptySession();
-          newSession.topic = oldSession.topic;
+          newSession.title = oldSession.topic;
           newSession.messages = [...oldSession.messages];
           newSession.mask.modelConfig.sendMemory = true;
           newSession.mask.modelConfig.historyMessageCount = 4;

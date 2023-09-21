@@ -577,10 +577,10 @@ export function EditMessageModal(props: { onClose: () => void }) {
           >
             <input
               type="text"
-              value={session.topic}
+              value={session.title}
               onInput={(e) =>
                 chatStore.updateCurrentSession(
-                  (session) => (session.topic = e.currentTarget.value),
+                  (session) => (session.title = e.currentTarget.value),
                 )
               }
             ></input>
@@ -695,6 +695,24 @@ function _Chat() {
     }
     setIsLoading(true);
     chatStore.onUserInput(userInput).then(() => setIsLoading(false));
+    localStorage.setItem(LAST_INPUT_KEY, userInput);
+    setUserInput("");
+    setPromptHints([]);
+    if (!isMobileScreen) inputRef.current?.focus();
+    setAutoScroll(true);
+  };
+
+  const doCustomSubmit = (userInput: string) => {
+    if (userInput.trim() === "") return;
+    const matchCommand = chatCommands.match(userInput);
+    if (matchCommand.matched) {
+      setUserInput("");
+      setPromptHints([]);
+      matchCommand.invoke();
+      return;
+    }
+    setIsLoading(true);
+    chatStore.CustomUserInput(userInput).then(() => setIsLoading(false));
     localStorage.setItem(LAST_INPUT_KEY, userInput);
     setUserInput("");
     setPromptHints([]);
@@ -1053,7 +1071,7 @@ function _Chat() {
             className={`window-header-main-title ${styles["chat-body-main-title"]}`}
             onClickCapture={() => setIsEditingMessage(true)}
           >
-            {!session.topic ? DEFAULT_TOPIC : session.topic}
+            {!session.title ? DEFAULT_TOPIC : session.title}
           </div>
           <div className="window-header-sub-title">
             {Locale.Chat.SubTitle(session.messages.length)}
@@ -1214,6 +1232,7 @@ function _Chat() {
                       onContextMenu={(e) => onRightClick(e, message)}
                       onDoubleClickCapture={() => {
                         if (!isMobileScreen) return;
+
                         setUserInput(message.content);
                       }}
                       fontSize={fontSize}
@@ -1275,7 +1294,8 @@ function _Chat() {
             text={Locale.Chat.Send}
             className={styles["chat-input-send"]}
             type="primary"
-            onClick={() => doSubmit(userInput)}
+            // TODO:发送chat方法
+            onClick={() => doCustomSubmit(userInput)}
           />
         </div>
       </div>

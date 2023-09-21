@@ -54,6 +54,14 @@ export class ChatGPTApi implements LLMApi {
       content: v.content,
     }));
 
+    const lastContent = options.messages[options.messages.length - 1].content;
+
+    const dialogId = useChatStore.getState().currentSession();
+    console.log(
+      "🚀 ~ file: openai.ts:60 ~ ChatGPTApi ~ chat ~ dialogId:",
+      dialogId,
+    );
+
     const modelConfig = {
       ...useAppConfig.getState().modelConfig,
       ...useChatStore.getState().currentSession().mask.modelConfig,
@@ -63,7 +71,8 @@ export class ChatGPTApi implements LLMApi {
     };
 
     const requestPayload = {
-      messages,
+      dialog_id: dialogId.id,
+      prompt: lastContent,
       stream: options.config.stream,
       model: modelConfig.model,
       temperature: modelConfig.temperature,
@@ -77,14 +86,14 @@ export class ChatGPTApi implements LLMApi {
     const shouldStream = !!options.config.stream;
     const controller = new AbortController();
     options.onController?.(controller);
-
+    const headers = await getHeaders();
     try {
-      const chatPath = this.path(OpenaiPath.ChatPath);
+      const chatPath = this.path(OpenaiPath.CustomChatPath);
       const chatPayload = {
         method: "POST",
         body: JSON.stringify(requestPayload),
         signal: controller.signal,
-        headers: getHeaders(),
+        headers: headers,
       };
 
       // make a fetch request
@@ -106,7 +115,7 @@ export class ChatGPTApi implements LLMApi {
 
         controller.signal.onabort = finish;
 
-        fetchEventSource(chatPath, {
+        fetchEventSource("https://ai.tongweichain.com/api/chat/require", {
           ...chatPayload,
           async onopen(res) {
             clearTimeout(requestTimeoutId);
@@ -174,7 +183,15 @@ export class ChatGPTApi implements LLMApi {
           openWhenHidden: true,
         });
       } else {
-        const res = await fetch(chatPath, chatPayload);
+        console.log(
+          "🚀 ~ file: openai.ts:189 ~ ChatGPTApi ~ chat ~ chatPayload:",
+          chatPayload,
+        );
+
+        const res = await fetch(
+          "https://ai.tongweichain.com/api/chat/require",
+          chatPayload,
+        );
         clearTimeout(requestTimeoutId);
 
         const resJson = await res.json();
@@ -186,6 +203,7 @@ export class ChatGPTApi implements LLMApi {
       options.onError?.(e as Error);
     }
   }
+
   async usage() {
     const formatDate = (d: Date) =>
       `${d.getFullYear()}-${(d.getMonth() + 1).toString().padStart(2, "0")}-${d
@@ -197,7 +215,7 @@ export class ChatGPTApi implements LLMApi {
     const startOfMonth = new Date(now.getFullYear(), now.getMonth(), 1);
     const startDate = formatDate(startOfMonth);
     const endDate = formatDate(new Date(Date.now() + ONE_DAY));
-
+    const headers = await getHeaders();
     const [used, subs] = await Promise.all([
       fetch(
         this.path(
@@ -205,12 +223,12 @@ export class ChatGPTApi implements LLMApi {
         ),
         {
           method: "GET",
-          headers: getHeaders(),
+          headers: headers,
         },
       ),
       fetch(this.path(OpenaiPath.SubsPath), {
         method: "GET",
-        headers: getHeaders(),
+        headers: headers,
       }),
     ]);
 
@@ -256,11 +274,11 @@ export class ChatGPTApi implements LLMApi {
     if (this.disableListModels) {
       return DEFAULT_MODELS.slice();
     }
-
+    const headers = await getHeaders();
     const res = await fetch(this.path(OpenaiPath.ListModelPath), {
       method: "GET",
       headers: {
-        ...getHeaders(),
+        ...headers,
       },
     });
 

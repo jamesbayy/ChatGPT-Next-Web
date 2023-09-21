@@ -1,16 +1,7 @@
-import { baseUrl } from "@/app/api/config/baseUrl";
+import { post } from "@/app/request/client";
 
 export const fetchVerificationCode = async (phone: string) => {
-  const url = baseUrl + "login/sendsms";
-  const formData = new FormData();
-  formData.append("phone", phone);
-
-  const response = await fetch(url, {
-    method: "POST",
-    body: formData,
-  });
-
-  const data = await response.json();
+  const data = await post("login/sendsms", { phone: phone });
   return data;
 };
 
@@ -19,17 +10,6 @@ export const register = async (Register: {
   phone: string;
   verify: string;
 }) => {
-  const url = baseUrl + "login/register";
-
-  const formData = new FormData();
-  formData.append("phone", Register.phone);
-  formData.append("verify", Register.verify);
-  formData.append("password", Register.password);
-
-  const response = await fetch(url, {
-    method: "POST",
-    body: formData,
-  });
-  const data = await response.json();
+  const data = await post("login/register", register);
   return data;
 };

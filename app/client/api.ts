@@ -1,5 +1,6 @@
 import { getClientConfig } from "../config/client";
 import { ACCESS_CODE_PREFIX } from "../constant";
+import { getAuthorization } from "../request/client/utils";
 import { ChatMessage, ModelType, useAccessStore } from "../store";
 import { ChatGPTApi } from "./platforms/openai";
 
@@ -125,11 +126,15 @@ export class ClientApi {
 
 export const api = new ClientApi();
 
-export function getHeaders() {
+export async function getHeaders() {
   const accessStore = useAccessStore.getState();
+  let token = await getAuthorization("default");
+  console.log("🚀 ~ file: api.ts:132 ~ getHeaders ~ token:", token);
   let headers: Record<string, string> = {
     "Content-Type": "application/json",
     "x-requested-with": "XMLHttpRequest",
+    "api-name": "web",
+    "api-token": token,
   };
 
   const makeBearer = (token: string) => `Bearer ${token.trim()}`;

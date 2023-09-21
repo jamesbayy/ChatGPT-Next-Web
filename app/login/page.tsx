@@ -3,10 +3,11 @@ import React, { useState } from "react";
 import { useLogin } from "../store/login";
 import { Button, Checkbox, Form, Input } from "antd";
 import { LockOutlined, UserOutlined } from "@ant-design/icons";
-import useSWR from "swr";
-import { CountdownButton } from "../components/countDownButton";
 import { loginIn } from "./api/api";
-import { registerReponseType } from "../register/page";
+import { setSession } from "@/app/utils/api";
+import { useRouter } from "next/navigation";
+import { redirect } from "next/navigation";
+import { showModal } from "../components/ui-lib";
 
 type FieldType = {
   username?: string;
@@ -14,12 +15,17 @@ type FieldType = {
   remember?: string;
 };
 function Login() {
-  const isLogin = useLogin((state) => state.isLogin);
   const [form] = Form.useForm<{ phoneNumber: string; password: string }>();
+  const router = useRouter();
   const onFinish = async (values: any) => {
-    const data: registerReponseType = await loginIn(values);
+    const data = await loginIn(values);
+    console.log("🚀 ~ file: page.tsx:22 ~ onFinish ~ data:", data);
+
     if (data.code === 1) {
-      localStorage.setItem("token", data.data.token.token);
+      setSession("local", "defaultToken", data.data.token);
+      router.push("/");
+    } else {
+      showModal({ title: "error" });
     }
   };
   return (

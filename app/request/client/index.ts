@@ -1,4 +1,4 @@
-import { IAuthType, IResponse } from "./utils";
+import { IAuthType, IResponse } from "@/app/types/api";
 import {
   getAuthorization,
   getStringParams,
@@ -13,11 +13,14 @@ export const post = async <T>(
   revalidate = 20,
 ): Promise<IResponse<T>> => {
   const token = await getAuthorization(authType);
+  console.log("🚀 ~ file: index.ts:16 ~ token:", token);
   const host = hostMap[authType];
   const finallyUrl = `${host}${url}`;
   const response = await fetch(finallyUrl, {
     headers: {
-      Authorization: token,
+      "api-name": "web",
+      "api-token": token,
+      "content-type": "application/json",
     },
     method: "POST",
     body: data && JSON.stringify(data),
@@ -40,7 +43,9 @@ export const get = async <T>(
   const finallyUrl = `${host}${formatUrl}`;
   const response = await fetch(finallyUrl, {
     headers: {
-      Authorization: token,
+      "api-name": "web",
+      "api-token": token,
+      "content-type": "application/json",
     },
     method: "GET",
     next: {
