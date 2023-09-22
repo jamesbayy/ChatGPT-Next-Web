@@ -221,10 +221,6 @@ export const useChatStore = createPersistStore(
       },
       async newCustomSession(mask?: Mask) {
         const session = createEmptySessionByCustomId();
-        console.log(
-          "🚀 ~ file: chat.ts:224 ~ newCustomSession ~ session:",
-          session,
-        );
         session.then((res) => {
           if (mask) {
             const config = useAppConfig.getState();
@@ -343,10 +339,7 @@ export const useChatStore = createPersistStore(
       //TODO:自定义chat方法  chat
       async CustomUserInput(content: string) {
         const session = get().currentSession();
-        console.log(
-          "🚀 ~ file: chat.ts:346 ~ CustomUserInput ~ session:",
-          session,
-        );
+
         const modelConfig = session.mask.modelConfig;
         const userContent = fillTemplateWith(content, modelConfig);
         const userMessage: ChatMessage = createMessage({

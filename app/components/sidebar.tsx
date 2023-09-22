@@ -198,7 +198,6 @@ export function SideBar(props: { className?: string }) {
 
                 navigate(Path.Chat);
               } else {
-                console.log(11111);
                 navigate(Path.NewChat);
               }
             }}

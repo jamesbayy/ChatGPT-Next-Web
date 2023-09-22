@@ -1,12 +1,10 @@
 export const getSession = (type: "session" | "local", key: string) => {
-  console.log("🚀 ~ file: index.ts:2 ~ getSession ~ key:", key);
   if (!key) {
     return;
   }
   const isBrowser: boolean = ((): boolean => typeof window !== "undefined")();
   const value = isBrowser ? window[`${type}Storage`][key] : "";
 
-  console.log("🚀 ~ file: index.ts:8 ~ getSession ~ value:", value);
   // console.log(value);
   return value ? JSON.parse(value) : "";
 };

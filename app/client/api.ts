@@ -129,7 +129,6 @@ export const api = new ClientApi();
 export async function getHeaders() {
   const accessStore = useAccessStore.getState();
   let token = await getAuthorization("default");
-  console.log("🚀 ~ file: api.ts:132 ~ getHeaders ~ token:", token);
   let headers: Record<string, string> = {
     "Content-Type": "application/json",
     "x-requested-with": "XMLHttpRequest",

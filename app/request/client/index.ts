@@ -13,7 +13,6 @@ export const post = async <T>(
   revalidate = 20,
 ): Promise<IResponse<T>> => {
   const token = await getAuthorization(authType);
-  console.log("🚀 ~ file: index.ts:16 ~ token:", token);
   const host = hostMap[authType];
   const finallyUrl = `${host}${url}`;
   const response = await fetch(finallyUrl, {

@@ -1,10 +1,10 @@
 import qs from "qs";
 import cloneDeep from "lodash/cloneDeep";
 import jwtDecode from "jwt-decode";
-import { getSession } from "@/app/utils/api";
+import { getSession, removeSession } from "@/app/utils/api";
 import { IResponse, IAuthType, IQueryParams } from "@/app/types/api";
+import { redirect } from "next/navigation";
 const defaultHost = process.env.NEXT_PUBLIC_BASE_URL;
-console.log("🚀 ~ file: utils.ts:7 ~ defaultHost:", defaultHost);
 
 export const hostMap = {
   noToken: defaultHost,
@@ -15,6 +15,7 @@ export const isExpToken = (expTime: number) => {
   // get now time stamp
   const expTimeStamp = parseInt(`${expTime}000`);
   const nowTime = Date.parse(new Date().toString()) + 3 * 60 * 1000;
+
   return nowTime > expTimeStamp;
 };
 
@@ -25,6 +26,7 @@ export const parseJWT = (
   try {
     return jwtDecode(token);
   } catch (err) {
+    console.log(err);
     return { exp: 0, iat: 0, sub: 0, userAddr: "" };
   }
 };
@@ -72,24 +74,25 @@ export const getAuthorization = async (authType: IAuthType) => {
   }
   const tokenKey = `${authType}Token`;
   // 封装的获取localstorage等数据的方法
-  const accessToken = getSession("local", tokenKey);
-  const tokenInfo = parseJWT(accessToken);
-  let authorization = accessToken.token;
+  const accessToken: {
+    token: string;
+    expire: number;
+  } = getSession("local", tokenKey);
+  // const tokenInfo = parseJWT(accessToken.token);
+  let authorization = "";
 
   //TODO:检查token过期时间
-
-  if (accessToken && !isExpToken(tokenInfo.exp)) {
-    // authorization = accessToken;
+  if (accessToken && !isExpToken(accessToken.expire)) {
+    authorization = accessToken.token;
   } else {
+    removeSession("local", tokenKey);
+
     // token 过期了，重新登录请求然后给请求头设置好token
     // 获取token的方法等也可以根据authType的不同进行自定义设置
     // const res = await getToken("账号密码等");
     // setSession("local", tokenKey, res?.data);
     // authorization = `Bearer ${res?.data}`;
   }
-  console.log(
-    "🚀 ~ file: utils.ts:78 ~ getAuthorization ~ authorization:",
-    authorization,
-  );
+
   return authorization;
 };

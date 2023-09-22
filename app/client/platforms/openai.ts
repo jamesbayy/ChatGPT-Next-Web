@@ -57,10 +57,6 @@ export class ChatGPTApi implements LLMApi {
     const lastContent = options.messages[options.messages.length - 1].content;
 
     const dialogId = useChatStore.getState().currentSession();
-    console.log(
-      "🚀 ~ file: openai.ts:60 ~ ChatGPTApi ~ chat ~ dialogId:",
-      dialogId,
-    );
 
     const modelConfig = {
       ...useAppConfig.getState().modelConfig,
@@ -80,8 +76,6 @@ export class ChatGPTApi implements LLMApi {
       frequency_penalty: modelConfig.frequency_penalty,
       top_p: modelConfig.top_p,
     };
-
-    console.log("[Request] openai payload: ", requestPayload);
 
     const shouldStream = !!options.config.stream;
     const controller = new AbortController();
@@ -120,16 +114,11 @@ export class ChatGPTApi implements LLMApi {
           async onopen(res) {
             clearTimeout(requestTimeoutId);
             const contentType = res.headers.get("content-type");
-            console.log(
-              "[OpenAI] request response content type: ",
-              contentType,
-            );
 
             if (contentType?.startsWith("text/plain")) {
               responseText = await res.clone().text();
               return finish();
             }
-
             if (
               !res.ok ||
               !res.headers
@@ -138,6 +127,14 @@ export class ChatGPTApi implements LLMApi {
               res.status !== 200
             ) {
               const responseTexts = [responseText];
+              console.log(
+                "🚀 ~ file: openai.ts:130 ~ ChatGPTApi ~ onopen ~ responseTexts:",
+                responseTexts,
+              );
+              console.log(
+                "🚀 ~ file: openai.ts:134 ~ ChatGPTApi ~ onopen ~ responseText:",
+                responseText,
+              );
               let extraInfo = await res.clone().text();
               try {
                 const resJson = await res.clone().json();
@@ -145,6 +142,7 @@ export class ChatGPTApi implements LLMApi {
               } catch {}
 
               if (res.status === 401) {
+                //TODO: 未登录
                 responseTexts.push(Locale.Error.Unauthorized);
               }
 
@@ -153,7 +151,6 @@ export class ChatGPTApi implements LLMApi {
               }
 
               responseText = responseTexts.join("\n\n");
-
               return finish();
             }
           },
@@ -183,23 +180,19 @@ export class ChatGPTApi implements LLMApi {
           openWhenHidden: true,
         });
       } else {
-        console.log(
-          "🚀 ~ file: openai.ts:189 ~ ChatGPTApi ~ chat ~ chatPayload:",
-          chatPayload,
-        );
-
         const res = await fetch(
           "https://ai.tongweichain.com/api/chat/require",
           chatPayload,
         );
         clearTimeout(requestTimeoutId);
-
         const resJson = await res.json();
+
+        //不用检查
         const message = this.extractMessage(resJson);
+
         options.onFinish(message);
       }
     } catch (e) {
-      console.log("[Request] failed to make a chat request", e);
       options.onError?.(e as Error);
     }
   }
