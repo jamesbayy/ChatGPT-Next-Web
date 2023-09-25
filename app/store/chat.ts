@@ -629,6 +629,11 @@ export const useChatStore = createPersistStore(
 
         // should summarize topic after chating more than 50 words
         const SUMMARIZE_MIN_LEN = 50;
+        console.log(
+          "🚀 ~ file: chat.ts:629 ~ summarizeSession ~ messages:",
+          messages,
+          countMessages(messages) >= SUMMARIZE_MIN_LEN,
+        );
         if (
           config.enableAutoGenerateTitle &&
           session.title === DEFAULT_TOPIC &&

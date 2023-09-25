@@ -126,32 +126,35 @@ export class ChatGPTApi implements LLMApi {
                 ?.startsWith(EventStreamContentType) ||
               res.status !== 200
             ) {
-              const responseTexts = [responseText];
-              console.log(
-                "🚀 ~ file: openai.ts:130 ~ ChatGPTApi ~ onopen ~ responseTexts:",
-                responseTexts,
-              );
-              console.log(
-                "🚀 ~ file: openai.ts:134 ~ ChatGPTApi ~ onopen ~ responseText:",
-                responseText,
-              );
-              let extraInfo = await res.clone().text();
-              try {
-                const resJson = await res.clone().json();
-                extraInfo = prettyObject(resJson);
-              } catch {}
+              //NOTICE: 被修改
+              const resJson = await res.clone().json();
+              // extraInfo = prettyObject(resJson.data.choices[0].message);
+              const message =
+                resJson.data.choices?.at(0)?.message?.content ?? "";
 
-              if (res.status === 401) {
-                //TODO: 未登录
-                responseTexts.push(Locale.Error.Unauthorized);
-              }
+              return options.onFinish(message);
+              // const responseTexts = [responseText];
+              // console.log(
+              //   "🚀 ~ file: openai.ts:130 ~ ChatGPTApi ~ onopen ~ responseTexts:",
+              //   responseTexts,
+              // );
+              // let extraInfo = await res.clone().text();
+              // try {
+              //   const resJson = await res.clone().json();
+              //   extraInfo = prettyObject(resJson.data.choices[0].message);
+              // } catch {}
 
-              if (extraInfo) {
-                responseTexts.push(extraInfo);
-              }
+              // if (res.status === 401) {
+              //   //TODO: 未登录
+              //   responseTexts.push(Locale.Error.Unauthorized);
+              // }
 
-              responseText = responseTexts.join("\n\n");
-              return finish();
+              // if (extraInfo) {
+              //   responseTexts.push(extraInfo);
+              // }
+
+              // responseText = responseTexts.join("\n\n");
+              // return finish();
             }
           },
           onmessage(msg) {
