@@ -1,5 +1,6 @@
 import { getClientConfig } from "../config/client";
 import { ACCESS_CODE_PREFIX } from "../constant";
+import { post } from "../request/client";
 import { getAuthorization } from "../request/client/utils";
 import { ChatMessage, ModelType, useAccessStore } from "../store";
 import { ChatGPTApi } from "./platforms/openai";
@@ -152,4 +153,13 @@ export async function getHeaders() {
   }
 
   return headers;
+}
+export async function deleteChat(id: string) {
+  const data = await post("dialo/delete", {
+    id: id,
+  });
+  return data;
+}
+export async function editChat(params: { id: string; title: string }) {
+  const data = await post("dialog/update", params);
 }

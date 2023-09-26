@@ -16,20 +16,21 @@ import { Link, useNavigate } from "react-router-dom";
 import { Path } from "../constant";
 import { MaskAvatar } from "./mask";
 import { Mask } from "../store/mask";
-import { useRef, useEffect } from "react";
+import { useRef, useEffect, useState } from "react";
 import { showConfirm } from "./ui-lib";
-
+import { deleteChat, getChatlist } from "../client/customResApi/ai";
+type ChatList = {
+  id: number;
+  title: string;
+};
 export function ChatItem(props: {
   onClick?: () => void;
   onDelete?: () => void;
   title: string;
-  count: number;
-  time: string;
   selected: boolean;
   id: string;
   index: number;
   narrow?: boolean;
-  mask: Mask;
 }) {
   const draggableRef = useRef<HTMLDivElement | null>(null);
   useEffect(() => {
@@ -53,28 +54,13 @@ export function ChatItem(props: {
           }}
           {...provided.draggableProps}
           {...provided.dragHandleProps}
-          title={`${props.title}\n${Locale.ChatItem.ChatItemCount(
-            props.count,
-          )}`}
         >
           {props.narrow ? (
-            <div className={styles["chat-item-narrow"]}>
-              <div className={styles["chat-item-avatar"] + " no-dark"}>
-                <MaskAvatar mask={props.mask} />
-              </div>
-              <div className={styles["chat-item-narrow-count"]}>
-                {props.count}
-              </div>
-            </div>
+            <div className={styles["chat-item-narrow"]}></div>
           ) : (
             <>
               <div className={styles["chat-item-title"]}>{props.title}</div>
-              <div className={styles["chat-item-info"]}>
-                <div className={styles["chat-item-count"]}>
-                  {Locale.ChatItem.ChatItemCount(props.count)}
-                </div>
-                <div className={styles["chat-item-date"]}>{props.time}</div>
-              </div>
+              <div className={styles["chat-item-info"]}></div>
             </>
           )}
 
@@ -91,14 +77,18 @@ export function ChatItem(props: {
 }
 
 export function ChatList(props: { narrow?: boolean }) {
-  const [sessions, selectedIndex, selectSession, moveSession] = useChatStore(
-    (state) => [
-      state.sessions,
-      state.currentSessionIndex,
-      state.selectSession,
-      state.moveSession,
-    ],
-  );
+  const [sessions, setessions] = useState<Array<ChatList>>([]);
+  const data = useChatStore().sessions;
+  useEffect(() => {
+    getChatlist().then((res) => {
+      setessions(() => res.data as Array<ChatList>);
+    });
+  }, []);
+  const [selectedIndex, selectSession, moveSession] = useChatStore((state) => [
+    state.currentSessionIndex,
+    state.selectSession,
+    state.moveSession,
+  ]);
   const chatStore = useChatStore();
   const navigate = useNavigate();
 
@@ -130,15 +120,14 @@ export function ChatList(props: { narrow?: boolean }) {
             {sessions.map((item, i) => (
               <ChatItem
                 title={item.title}
-                time={new Date(item.lastUpdate).toLocaleString()}
-                count={item.messages.length}
                 key={item.id}
-                id={item.id}
-                index={i}
+                id={item.id + ""}
+                index={item.id}
                 selected={i === selectedIndex}
                 onClick={() => {
                   navigate(Path.Chat);
                   selectSession(i);
+                  console.log(Number(data[i].id));
                 }}
                 onDelete={async () => {
                   if (
@@ -146,10 +135,10 @@ export function ChatList(props: { narrow?: boolean }) {
                     (await showConfirm(Locale.Home.DeleteChat))
                   ) {
                     chatStore.deleteSession(i);
+                    // deleteChat();
                   }
                 }}
                 narrow={props.narrow}
-                mask={item.mask}
               />
             ))}
             {provided.placeholder}

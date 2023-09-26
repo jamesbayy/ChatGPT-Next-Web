@@ -19,10 +19,7 @@ import { prettyObject } from "../utils/format";
 import { estimateTokenLength } from "../utils/token";
 import { nanoid } from "nanoid";
 import { createPersistStore } from "../utils/store";
-import {
-  CustomChatGptApi,
-  createNewDialogId,
-} from "../client/platforms/customProxy";
+import { createNewDialogId } from "../client/customResApi/ai";
 import { ChatGPTApi } from "../client/platforms/openai";
 //BUG: modify  ChatSession.topic -->title
 export type ChatMessage = RequestMessage & {
@@ -52,14 +49,12 @@ export interface ChatStat {
 export interface ChatSession {
   id: string;
   title: string;
-
   memoryPrompt: string;
   messages: ChatMessage[];
   stat: ChatStat;
   lastUpdate: number;
   lastSummarizeIndex: number;
   clearContextIndex?: number;
-
   mask: Mask;
 }
 
@@ -182,6 +177,11 @@ export const useChatStore = createPersistStore(
     }
 
     const methods = {
+      setSessions() {
+        set((sessionsFromServe: any) => ({
+          sessions: [sessionsFromServe],
+        }));
+      },
       clearSessions() {
         set(() => ({
           sessions: [createEmptySession()],
@@ -334,7 +334,8 @@ export const useChatStore = createPersistStore(
           session.lastUpdate = Date.now();
         });
         get().updateStat(message);
-        get().summarizeSession();
+        //NOTICE:取消总结
+        // get().summarizeSession();
       },
       //TODO:自定义chat方法  chat
       async CustomUserInput(content: string) {

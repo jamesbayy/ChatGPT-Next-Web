@@ -89,6 +89,7 @@ import { ChatCommandPrefix, useChatCommand, useCommand } from "../command";
 import { prettyObject } from "../utils/format";
 import { ExportMessageModal } from "./exporter";
 import { getClientConfig } from "../config/client";
+import { deleteChat } from "../client/customResApi/ai";
 
 const Markdown = dynamic(async () => (await import("./markdown")).Markdown, {
   loading: () => <LoadingIcon />,
@@ -606,9 +607,9 @@ function _Chat() {
   const session = chatStore.currentSession();
   const config = useAppConfig();
   const fontSize = config.fontSize;
-
+  const currentchose = chatStore.currentSessionIndex;
   const [showExport, setShowExport] = useState(false);
-
+  const [chatMsgFromNetwork, setChatMsgFromNetwork] = useState([]);
   const inputRef = useRef<HTMLTextAreaElement>(null);
   const [userInput, setUserInput] = useState("");
   const [isLoading, setIsLoading] = useState(false);
@@ -647,7 +648,12 @@ function _Chat() {
       trailing: true,
     },
   );
-
+  useEffect(() => {
+    console.log(
+      "🚀 ~ file: chat.tsx:653 ~ useEffect ~ currentchose:",
+      currentchose,
+    );
+  }, []);
   // eslint-disable-next-line react-hooks/exhaustive-deps
   useEffect(measure, [userInput]);
 
@@ -661,7 +667,10 @@ function _Chat() {
       chatStore.updateCurrentSession(
         (session) => (session.clearContextIndex = session.messages.length),
       ),
-    del: () => chatStore.deleteSession(chatStore.currentSessionIndex),
+    del: () => {
+      chatStore.deleteSession(chatStore.currentSessionIndex);
+      deleteChat(chatStore.currentSessionIndex);
+    },
   });
 
   // only search prompts when user input is short
@@ -742,34 +751,34 @@ function _Chat() {
     ChatControllerPool.stop(session.id, messageId);
   };
 
-  useEffect(() => {
-    chatStore.updateCurrentSession((session) => {
-      const stopTiming = Date.now() - REQUEST_TIMEOUT_MS;
-      session.messages.forEach((m) => {
-        // check if should stop all stale messages
-        if (m.isError || new Date(m.date).getTime() < stopTiming) {
-          if (m.streaming) {
-            m.streaming = false;
-          }
+  // useEffect(() => {
+  //   chatStore.updateCurrentSession((session) => {
+  //     const stopTiming = Date.now() - REQUEST_TIMEOUT_MS;
+  //     session.messages.forEach((m) => {
+  //       // check if should stop all stale messages
+  //       if (m.isError || new Date(m.date).getTime() < stopTiming) {
+  //         if (m.streaming) {
+  //           m.streaming = false;
+  //         }
 
-          if (m.content.length === 0) {
-            m.isError = true;
-            m.content = prettyObject({
-              error: true,
-              message: "empty response",
-            });
-          }
-        }
-      });
+  //         if (m.content.length === 0) {
+  //           m.isError = true;
+  //           m.content = prettyObject({
+  //             error: true,
+  //             message: "empty response",
+  //           });
+  //         }
+  //       }
+  //     });
 
-      // auto sync mask config from global config
-      if (session.mask.syncGlobalConfig) {
-        console.log("[Mask] syncing from global, name = ", session.mask.name);
-        session.mask.modelConfig = { ...config.modelConfig };
-      }
-    });
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, []);
+  //     // auto sync mask config from global config
+  //     if (session.mask.syncGlobalConfig) {
+  //       console.log("[Mask] syncing from global, name = ", session.mask.name);
+  //       session.mask.modelConfig = { ...config.modelConfig };
+  //     }
+  //   });
+  //   // eslint-disable-next-line react-hooks/exhaustive-deps
+  // }, []);
 
   // check if should send message
   const onInputKeyDown = (e: React.KeyboardEvent<HTMLTextAreaElement>) => {
@@ -1193,18 +1202,6 @@ function _Chat() {
                                 icon={<ResetIcon />}
                                 onClick={() => onResend(message)}
                               />
-
-                              <ChatAction
-                                text={Locale.Chat.Actions.Delete}
-                                icon={<DeleteIcon />}
-                                onClick={() => onDelete(message.id ?? i)}
-                              />
-
-                              <ChatAction
-                                text={Locale.Chat.Actions.Pin}
-                                icon={<PinIcon />}
-                                onClick={() => onPinMessage(message)}
-                              />
                               <ChatAction
                                 text={Locale.Chat.Actions.Copy}
                                 icon={<CopyIcon />}
@@ -1273,6 +1270,7 @@ function _Chat() {
             onSearch("");
           }}
         />
+
         <div className={styles["chat-input-panel-inner"]}>
           <textarea
             ref={inputRef}

@@ -13,7 +13,7 @@ import PluginIcon from "../icons/plugin.svg";
 import DragIcon from "../icons/drag.svg";
 
 import Locale from "../locales";
-
+import { PayCircleFilled } from "@ant-design/icons";
 import { useAppConfig, useChatStore } from "../store";
 
 import {
@@ -183,7 +183,7 @@ export function SideBar(props: { className?: string }) {
           </div>
           <div className={styles["sidebar-action"]}>
             <a href={REPO_URL} target="_blank" rel="noopener noreferrer">
-              <IconButton icon={<GithubIcon />} shadow />
+              <IconButton icon={<PayCircleFilled />} shadow />
             </a>
           </div>
         </div>
