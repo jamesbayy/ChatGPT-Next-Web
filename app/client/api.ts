@@ -154,12 +154,3 @@ export async function getHeaders() {
 
   return headers;
 }
-export async function deleteChat(id: string) {
-  const data = await post("dialo/delete", {
-    id: id,
-  });
-  return data;
-}
-export async function editChat(params: { id: string; title: string }) {
-  const data = await post("dialog/update", params);
-}

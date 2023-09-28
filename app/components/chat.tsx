@@ -89,7 +89,7 @@ import { ChatCommandPrefix, useChatCommand, useCommand } from "../command";
 import { prettyObject } from "../utils/format";
 import { ExportMessageModal } from "./exporter";
 import { getClientConfig } from "../config/client";
-import { deleteChat } from "../client/customResApi/ai";
+import { deleteChat, getChatMessage } from "../client/customResApi/ai";
 
 const Markdown = dynamic(async () => (await import("./markdown")).Markdown, {
   loading: () => <LoadingIcon />,
@@ -618,6 +618,14 @@ function _Chat() {
   const [hitBottom, setHitBottom] = useState(true);
   const isMobileScreen = useMobileScreen();
   const navigate = useNavigate();
+  const [msgFromNetwork, setMsgFromNetwork] = useState<Array<ChatMessage>>([]);
+  useEffect(() => {
+    const getMSgFromNetwork = async () => {
+      const data = await getChatMessage(session.id);
+      session.messages = data.data.list as Array<ChatMessage>;
+    };
+    getMSgFromNetwork();
+  }, []);
 
   // prompt hints
   const promptStore = usePromptStore();
@@ -751,34 +759,34 @@ function _Chat() {
     ChatControllerPool.stop(session.id, messageId);
   };
 
-  // useEffect(() => {
-  //   chatStore.updateCurrentSession((session) => {
-  //     const stopTiming = Date.now() - REQUEST_TIMEOUT_MS;
-  //     session.messages.forEach((m) => {
-  //       // check if should stop all stale messages
-  //       if (m.isError || new Date(m.date).getTime() < stopTiming) {
-  //         if (m.streaming) {
-  //           m.streaming = false;
-  //         }
+  useEffect(() => {
+    chatStore.updateCurrentSession((session) => {
+      const stopTiming = Date.now() - REQUEST_TIMEOUT_MS;
+      session.messages.forEach((m) => {
+        // check if should stop all stale messages
+        if (m.isError || new Date(m.date).getTime() < stopTiming) {
+          if (m.streaming) {
+            m.streaming = false;
+          }
 
-  //         if (m.content.length === 0) {
-  //           m.isError = true;
-  //           m.content = prettyObject({
-  //             error: true,
-  //             message: "empty response",
-  //           });
-  //         }
-  //       }
-  //     });
+          if (m.content.length === 0) {
+            m.isError = true;
+            m.content = prettyObject({
+              error: true,
+              message: "empty response",
+            });
+          }
+        }
+      });
 
-  //     // auto sync mask config from global config
-  //     if (session.mask.syncGlobalConfig) {
-  //       console.log("[Mask] syncing from global, name = ", session.mask.name);
-  //       session.mask.modelConfig = { ...config.modelConfig };
-  //     }
-  //   });
-  //   // eslint-disable-next-line react-hooks/exhaustive-deps
-  // }, []);
+      // auto sync mask config from global config
+      if (session.mask.syncGlobalConfig) {
+        console.log("[Mask] syncing from global, name = ", session.mask.name);
+        session.mask.modelConfig = { ...config.modelConfig };
+      }
+    });
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
 
   // check if should send message
   const onInputKeyDown = (e: React.KeyboardEvent<HTMLTextAreaElement>) => {
@@ -885,7 +893,7 @@ function _Chat() {
       },
     });
   };
-
+  //TODO:判断link to serve
   const context: RenderMessage[] = useMemo(() => {
     return session.mask.hideContext ? [] : session.mask.context.slice();
   }, [session.mask.context, session.mask.hideContext]);

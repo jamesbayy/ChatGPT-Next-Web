@@ -20,9 +20,9 @@ export async function editChat(params: { id: number; title: string }) {
   const data = await post("dialog/update", params);
   return data;
 }
-export async function getChatMessage(id: number, title: string) {
+export async function getChatMessage(id: string) {
   const data = await post("chat/index", {
-    id: id,
+    dialog_id: Number(id),
   });
   return data;
 }

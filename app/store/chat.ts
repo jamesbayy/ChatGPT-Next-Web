@@ -56,6 +56,7 @@ export interface ChatSession {
   lastSummarizeIndex: number;
   clearContextIndex?: number;
   mask: Mask;
+  dialogID?: number;
 }
 
 export const DEFAULT_TOPIC = Locale.Store.DefaultTopic;
@@ -63,7 +64,26 @@ export const BOT_HELLO: ChatMessage = createMessage({
   role: "assistant",
   content: Locale.Store.BotHello,
 });
+export function createSessionByid(params: {
+  id: string;
+  title: string;
+}): ChatSession {
+  return {
+    id: params.id,
+    title: params.title,
+    memoryPrompt: "",
+    messages: [],
+    stat: {
+      tokenCount: 0,
+      wordCount: 0,
+      charCount: 0,
+    },
+    lastUpdate: Date.now(),
+    lastSummarizeIndex: 0,
 
+    mask: createEmptyMask(),
+  };
+}
 async function createEmptySessionByCustomId(): Promise<ChatSession> {
   const data = await createNewDialogId(DEFAULT_TOPIC);
   const id: string = data.data.current_id;
@@ -177,10 +197,19 @@ export const useChatStore = createPersistStore(
     }
 
     const methods = {
-      setSessions() {
-        set((sessionsFromServe: any) => ({
-          sessions: [sessionsFromServe],
-        }));
+      setDialogId(id: number) {
+        // set((state)=>{
+        //   const data = state.
+        // })
+      },
+      setSessions(sessionsFromServe: Array<any>) {
+        set((state) => {
+          const newSession = [...sessionsFromServe];
+          return {
+            sessions: newSession,
+            currentSessionIndex: 0,
+          };
+        });
       },
       clearSessions() {
         set(() => ({
