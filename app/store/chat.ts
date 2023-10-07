@@ -142,6 +142,7 @@ interface ChatStore {
   summarizeSession: () => void;
   updateStat: (message: ChatMessage) => void;
   updateCurrentSession: (updater: (session: ChatSession) => void) => void;
+  updateSessionMsgbyList: (msgList: ChatMessage[]) => void;
   updateMessage: (
     sessionIndex: number,
     messageIndex: number,
@@ -197,11 +198,6 @@ export const useChatStore = createPersistStore(
     }
 
     const methods = {
-      setDialogId(id: number) {
-        // set((state)=>{
-        //   const data = state.
-        // })
-      },
       setSessions(sessionsFromServe: Array<any>) {
         set((state) => {
           const newSession = [...sessionsFromServe];
@@ -630,7 +626,11 @@ export const useChatStore = createPersistStore(
 
         return recentMessages;
       },
-
+      updateSessionMsgbyhisToryMessages(historyMessages: ChatMessage[]) {
+        get().updateCurrentSession((session) => {
+          session.messages = historyMessages;
+        });
+      },
       updateMessage(
         sessionIndex: number,
         messageIndex: number,

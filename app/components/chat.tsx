@@ -605,11 +605,11 @@ function _Chat() {
 
   const chatStore = useChatStore();
   const session = chatStore.currentSession();
+  const updateMsgFromHistory = chatStore.updateSessionMsgbyhisToryMessages;
   const config = useAppConfig();
   const fontSize = config.fontSize;
   const currentchose = chatStore.currentSessionIndex;
   const [showExport, setShowExport] = useState(false);
-  const [chatMsgFromNetwork, setChatMsgFromNetwork] = useState([]);
   const inputRef = useRef<HTMLTextAreaElement>(null);
   const [userInput, setUserInput] = useState("");
   const [isLoading, setIsLoading] = useState(false);
@@ -618,11 +618,10 @@ function _Chat() {
   const [hitBottom, setHitBottom] = useState(true);
   const isMobileScreen = useMobileScreen();
   const navigate = useNavigate();
-  const [msgFromNetwork, setMsgFromNetwork] = useState<Array<ChatMessage>>([]);
   useEffect(() => {
     const getMSgFromNetwork = async () => {
       const data = await getChatMessage(session.id);
-      session.messages = data.data.list as Array<ChatMessage>;
+      updateMsgFromHistory(data.data.list as Array<ChatMessage>);
     };
     getMSgFromNetwork();
   }, []);
